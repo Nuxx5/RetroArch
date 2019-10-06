@@ -26,8 +26,8 @@
 
 #include "../menu_driver.h"
 
-#ifdef VITA
-static float *vertices3 = NULL;
+#if defined(VITA) || defined(HAVE_PICAGL)
+static float *menu_vertices3 = NULL;
 #endif
 
 static const GLfloat gl1_menu_vertexes[] = {
@@ -137,17 +137,19 @@ static void menu_display_gl1_draw(menu_display_ctx_draw_t *draw,
    glEnableClientState(GL_VERTEX_ARRAY);
    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-#ifdef VITA
-   if (vertices3)
-      free(vertices3);
-   vertices3 = (float*)malloc(sizeof(float) * 3 * draw->coords->vertices);
+#if defined(VITA) || defined(HAVE_PICAGL)
+   // TODO: Is this required for 3DS? I can't tell how the shader
+   // initializes z if only x and y are given.
+   if (menu_vertices3)
+      free(menu_vertices3);
+   menu_vertices3 = (float*)malloc(sizeof(float) * 3 * draw->coords->vertices);
    int i;
    for (i = 0; i < draw->coords->vertices; i++) {
-      memcpy(&vertices3[i*3], &draw->coords->vertex[i*2], sizeof(float) * 2);
-      vertices3[i*3] -= 0.5f;
-      vertices3[i*3+2] = 0.0f;
+      memcpy(&menu_vertices3[i*3], &draw->coords->vertex[i*2], sizeof(float) * 2);
+      menu_vertices3[i*3] -= 0.5f;
+      menu_vertices3[i*3+2] = 0.0f;
    }
-   glVertexPointer(3, GL_FLOAT, 0, vertices3);   
+   glVertexPointer(3, GL_FLOAT, 0, menu_vertices3);
 #else
    glVertexPointer(2, GL_FLOAT, 0, draw->coords->vertex);
 #endif
