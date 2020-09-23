@@ -5,7 +5,7 @@ DEBUG                   = 0
 BUILD_3DSX              = 1
 BUILD_3DS               = 0
 BUILD_CIA               = 1
-USE_CTRULIB_2           = 0
+USE_CTRULIB_2           = 1
 
 APP_TITLE            = RetroArch 3DS
 APP_DESCRIPTION      = RetroArch 3DS
@@ -18,6 +18,11 @@ APP_AUDIO            = pkg/ctr/assets/silent.wav
 APP_RSF              = pkg/ctr/tools/template.rsf
 APP_SYSTEM_MODE      = 64MB
 APP_SYSTEM_MODE_EXT  = 124MB
+APP_HAVE_ROMFS       = 1
+
+ifeq ($(APP_HAVE_ROMFS), 1)
+APP_ROMFS            = pkg/ctr/build/retroarch
+endif
 
 OBJ := ctr/ctr_system.o \
 		 ctr/ctr_memory.o \
@@ -76,6 +81,11 @@ APP_UNIQUE_ID     := $(shell echo $(APP_UNIQUE_ID) | cut -c1-7)
 
 MAKEROM_ARGS_COMMON = -rsf $(APP_RSF) -exefslogo -elf $(TARGET).elf -icon $(TARGET).icn -banner $(TARGET).bnr -DAPP_TITLE="$(APP_TITLE)" -DAPP_PRODUCT_CODE="$(APP_PRODUCT_CODE)" -DAPP_UNIQUE_ID=$(APP_UNIQUE_ID) -DAPP_SYSTEM_MODE=$(APP_SYSTEM_MODE) -DAPP_SYSTEM_MODE_EXT=$(APP_SYSTEM_MODE_EXT)
 
+ifeq ($(APP_HAVE_ROMFS), 1)
+	CFLAGS              += -DHAVE_ROMFS
+#	MAKEROM_ARGS_COMMON += -DAPP_ROMFS="$(APP_ROMFS)/"
+endif
+
 INCDIRS := -I$(CTRULIB)/include
 LIBDIRS := -L. -L$(CTRULIB)/lib
 
@@ -110,7 +120,11 @@ CFLAGS   += -std=gnu99 -ffast-math
 LIBS	:= -lctru -lm
 
 ifeq ($(BUILD_3DSX), 1)
-TARGET_3DSX := $(TARGET).3dsx $(TARGET).smdh
+ifeq ($(APP_HAVE_ROMFS), 1)
+	export _3DSXFLAGS += --smdh=$(TARGET).smdh
+	export _3DSXFLAGS += --romfs="$(APP_ROMFS)"
+endif
+TARGET_3DSX := $(TARGET).smdh $(TARGET).3dsx
 endif
 
 ifeq ($(BUILD_3DS), 1)

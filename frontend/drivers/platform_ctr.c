@@ -98,14 +98,18 @@ static void frontend_ctr_get_environment_settings(int* argc, char* argv[],
    fill_pathname_basedir(g_defaults.dirs[DEFAULT_DIR_PORT], elf_path_cst, sizeof(g_defaults.dirs[DEFAULT_DIR_PORT]));
    RARCH_LOG("port dir: [%s]\n", g_defaults.dirs[DEFAULT_DIR_PORT]);
 
+#ifdef HAVE_ROMFS
+#define ASSET_DIR_PORT "asset:/"
+#else
+#define ASSET_DIR_PORT g_defaults.dirs[DEFAULT_DIR_PORT]
+#endif
+
    fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_CORE_ASSETS], g_defaults.dirs[DEFAULT_DIR_PORT],
                       "downloads", sizeof(g_defaults.dirs[DEFAULT_DIR_CORE_ASSETS]));
-   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_ASSETS], g_defaults.dirs[DEFAULT_DIR_PORT],
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_ASSETS], ASSET_DIR_PORT,
                       "media", sizeof(g_defaults.dirs[DEFAULT_DIR_ASSETS]));
    fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_CORE], g_defaults.dirs[DEFAULT_DIR_PORT],
                       "cores", sizeof(g_defaults.dirs[DEFAULT_DIR_CORE]));
-   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_CORE_INFO], g_defaults.dirs[DEFAULT_DIR_CORE],
-                      "info", sizeof(g_defaults.dirs[DEFAULT_DIR_CORE_INFO]));
    fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_SAVESTATE], g_defaults.dirs[DEFAULT_DIR_CORE],
                       "savestates", sizeof(g_defaults.dirs[DEFAULT_DIR_SAVESTATE]));
    fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_SRAM], g_defaults.dirs[DEFAULT_DIR_CORE],
@@ -118,16 +122,26 @@ static void frontend_ctr_get_environment_settings(int* argc, char* argv[],
                       "config", sizeof(g_defaults.dirs[DEFAULT_DIR_MENU_CONFIG]));
    fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_REMAP], g_defaults.dirs[DEFAULT_DIR_PORT],
                       "config/remaps", sizeof(g_defaults.dirs[DEFAULT_DIR_REMAP]));
-   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_VIDEO_FILTER], g_defaults.dirs[DEFAULT_DIR_PORT],
-                      "filters", sizeof(g_defaults.dirs[DEFAULT_DIR_VIDEO_FILTER]));
-   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_DATABASE], g_defaults.dirs[DEFAULT_DIR_PORT],
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_AUDIO_FILTER], ASSET_DIR_PORT,
+                      "filters/audio", sizeof(g_defaults.dirs[DEFAULT_DIR_AUDIO_FILTER]));
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_VIDEO_FILTER], ASSET_DIR_PORT,
+                      "filters/video", sizeof(g_defaults.dirs[DEFAULT_DIR_VIDEO_FILTER]));
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_DATABASE], ASSET_DIR_PORT,
                       "database/rdb", sizeof(g_defaults.dirs[DEFAULT_DIR_DATABASE]));
-   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_CURSOR], g_defaults.dirs[DEFAULT_DIR_PORT],
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_CURSOR], ASSET_DIR_PORT,
                       "database/cursors", sizeof(g_defaults.dirs[DEFAULT_DIR_CURSOR]));
    fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_LOGS], g_defaults.dirs[DEFAULT_DIR_PORT],
                       "logs", sizeof(g_defaults.dirs[DEFAULT_DIR_LOGS]));
    fill_pathname_join(g_defaults.path_config, g_defaults.dirs[DEFAULT_DIR_PORT],
                       FILE_PATH_MAIN_CONFIG, sizeof(g_defaults.path_config));
+
+#ifdef HAVE_ROMFS
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_CORE_INFO], ASSET_DIR_PORT,
+                      "cores/info", sizeof(g_defaults.dirs[DEFAULT_DIR_CORE_INFO]));
+#else
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_CORE_INFO], g_defaults.dirs[DEFAULT_DIR_CORE],
+                      "info", sizeof(g_defaults.dirs[DEFAULT_DIR_CORE_INFO]));
+#endif
 }
 
 static void frontend_ctr_deinit(void* data)
@@ -177,7 +191,9 @@ static void frontend_ctr_deinit(void* data)
       parallax_layer_reg_state = (*(float*)0x1FF81080 == 0.0) ? 0x0 : 0x00010001;
       GSPGPU_WriteHWRegs(0x202000, &parallax_layer_reg_state, 4);
    }
-
+#ifdef HAVE_ROMFS
+   romfsUnmount("asset");
+#endif
    mcuHwcExit();
    ptmuExit();
    cfguExit();
@@ -388,6 +404,72 @@ static void ctr_check_dspfirm(void)
    }
 }
 
+#ifdef HAVE_ROMFS
+// 3DSX file header: https://github.com/devkitPro/libctru/blob/master/libctru/source/romfs_dev.c
+#define _3DSX_MAGIC 0x58534433 // '3DSX'
+typedef struct
+{
+	u32 magic;
+	u16 headerSize, relocHdrSize;
+	u32 formatVer;
+	u32 flags;
+	u32 codeSegSize, rodataSegSize, dataSegSize, bssSize;
+	u32 smdhOffset, smdhSize;
+	u32 fsOffset;
+} _3DSX_Header;
+
+int ctr_init_asset(const char* path)
+{
+	if (strncmp(path, "sdmc:/", 6) == 0)
+		path += 5;
+	else if (*path != '/')
+	{
+		printf("Error reading path: %s", path);
+	}
+
+	static uint16_t __utf16path[PATH_MAX+1];
+	ssize_t units = utf8_to_utf16(__utf16path, (const uint8_t*)path, PATH_MAX);
+	if (units < 0 || units >= PATH_MAX)
+	{
+		printf("Error converting path");
+		return 1;
+	}
+	__utf16path[units] = 0;
+
+	FS_Path apath = { PATH_EMPTY, 1, "" };
+	FS_Path fpath = { PATH_UTF16, (units+1)*2, __utf16path };
+	Handle file = 0;
+	Result res = FSUSER_OpenFileDirectly(&file, ARCHIVE_SDMC, apath, fpath, FS_OPEN_READ, 0);
+	if(R_FAILED(res))
+	{
+		RARCH_LOG("RomFS: Error opening file\n");
+		return 1;
+	}
+
+	_3DSX_Header hdr;
+	u32 bytesRead = 0;
+	res = FSFILE_Read(file, &bytesRead, 0, &hdr, sizeof(hdr));
+	if (R_FAILED(res))
+	{
+		FSFILE_Close(file);
+		return 1;
+	}
+	if (bytesRead != sizeof(hdr) || hdr.magic != _3DSX_MAGIC || hdr.headerSize < sizeof(hdr))
+	{
+		FSFILE_Close(file);
+		return 1;
+	}
+	res = romfsMountFromFile(file, hdr.fsOffset, "asset");
+	if(R_FAILED(res))
+	{
+		FSFILE_Close(file);
+		RARCH_LOG("RomFS: Error opening romfs from file\n");
+		return 1;
+	}
+	return 0;
+}
+#endif
+
 __attribute__((weak)) Result svchax_init(bool patch_srv);
 __attribute__((weak)) u32 __ctr_patch_services;
 
@@ -489,6 +571,18 @@ static void frontend_ctr_init(void* data)
    cfguInit();
    ptmuInit();
    mcuHwcInit();
+#ifdef HAVE_ROMFS
+   if (envIsHomebrew()) {
+      if (ctr_init_asset("sdmc:/3ds/retroarch/retroarch.3dsx") !=0) {
+		  RARCH_LOG("RomFS: error 3ds/retroarch/retroarch.3dsx\n");
+	  }
+   } else {
+	  /* retroarch.3dsx renamed */
+      if (ctr_init_asset("sdmc:/retroarch/retroarch.bin") !=0) {
+		  RARCH_LOG("RomFS: error retroarch/retroarch.bin\n");
+	  }
+   }
+#endif
 #endif
 }
 
@@ -541,6 +635,15 @@ static int frontend_ctr_parse_drive_list(void* data, bool load_content)
             MENU_ENUM_LABEL_FILE_DETECT_CORE_LIST_PUSH_DIR),
          enum_idx,
          FILE_TYPE_DIRECTORY, 0, 0);
+
+#ifdef HAVE_ROMFS
+   menu_entries_append_enum(list,
+         "asset:/",
+         msg_hash_to_str(
+            MENU_ENUM_LABEL_FILE_DETECT_CORE_LIST_PUSH_DIR),
+         enum_idx,
+         FILE_TYPE_DIRECTORY, 0, 0);
+#endif
 #endif
 
    return 0;

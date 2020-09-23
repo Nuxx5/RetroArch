@@ -7,6 +7,9 @@ TitleInfo:
   Category                : Application
   UniqueId                : $(APP_UNIQUE_ID)
 
+#RomFs:
+#  RootPath                : $(APP_ROMFS)
+
 Option:
   UseOnSD                 : true # true if App is to be installed to SD
   FreeProductCode         : true # Removes limitations on ProductCode

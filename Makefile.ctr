@@ -8,7 +8,7 @@ BUILD_3DSX              = 1
 BUILD_3DS               = 0
 BUILD_CIA               = 1
 LIBCTRU_NO_DEPRECATION  = 1
-USE_CTRULIB_2           = 0
+USE_CTRULIB_2           = 1
 
 APP_TITLE            = RetroArch 3DS
 APP_DESCRIPTION      = RetroArch 3DS
@@ -23,6 +23,7 @@ APP_SYSTEM_MODE      = 64MB
 APP_SYSTEM_MODE_EXT  = 124MB
 APP_BIG_TEXT_SECTION = 0
 APP_USE_SVCHAX       = 0
+APP_HAVE_ROMFS       = 1
 
 include pkg/ctr/Makefile.cores
 
@@ -124,6 +125,10 @@ APP_PRODUCT_CODE  := $(shell echo $(APP_PRODUCT_CODE) | cut -c1-16)
 APP_UNIQUE_ID     := $(shell echo $(APP_UNIQUE_ID) | cut -c1-7)
 
 MAKEROM_ARGS_COMMON = -rsf $(APP_RSF) -exefslogo -elf $(TARGET).elf -icon $(TARGET).icn -banner $(TARGET).bnr -DAPP_TITLE="$(APP_TITLE)" -DAPP_PRODUCT_CODE="$(APP_PRODUCT_CODE)" -DAPP_UNIQUE_ID=$(APP_UNIQUE_ID) -DAPP_SYSTEM_MODE=$(APP_SYSTEM_MODE) -DAPP_SYSTEM_MODE_EXT=$(APP_SYSTEM_MODE_EXT)
+
+ifeq ($(APP_HAVE_ROMFS), 1)
+	CFLAGS += -DHAVE_ROMFS
+endif
 
 INCDIRS := -I$(CTRULIB)/include
 LIBDIRS := -L. -L$(CTRULIB)/lib
