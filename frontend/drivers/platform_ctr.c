@@ -409,64 +409,64 @@ static void ctr_check_dspfirm(void)
 #define _3DSX_MAGIC 0x58534433 // '3DSX'
 typedef struct
 {
-	u32 magic;
-	u16 headerSize, relocHdrSize;
-	u32 formatVer;
-	u32 flags;
-	u32 codeSegSize, rodataSegSize, dataSegSize, bssSize;
-	u32 smdhOffset, smdhSize;
-	u32 fsOffset;
+   u32 magic;
+   u16 headerSize, relocHdrSize;
+   u32 formatVer;
+   u32 flags;
+   u32 codeSegSize, rodataSegSize, dataSegSize, bssSize;
+   u32 smdhOffset, smdhSize;
+   u32 fsOffset;
 } _3DSX_Header;
 
 int ctr_init_asset(const char* path)
 {
-	if (strncmp(path, "sdmc:/", 6) == 0)
-		path += 5;
-	else if (*path != '/')
-	{
-		printf("Error reading path: %s", path);
-	}
+   if (strncmp(path, "sdmc:/", 6) == 0)
+      path += 5;
+   else if (*path != '/')
+   {
+      printf("Error reading path: %s", path);
+   }
 
-	static uint16_t __utf16path[PATH_MAX+1];
-	ssize_t units = utf8_to_utf16(__utf16path, (const uint8_t*)path, PATH_MAX);
-	if (units < 0 || units >= PATH_MAX)
-	{
-		printf("Error converting path");
-		return 1;
-	}
-	__utf16path[units] = 0;
+   static uint16_t __utf16path[PATH_MAX+1];
+   ssize_t units = utf8_to_utf16(__utf16path, (const uint8_t*)path, PATH_MAX);
+   if (units < 0 || units >= PATH_MAX)
+   {
+      printf("Error converting path");
+      return 1;
+   }
+   __utf16path[units] = 0;
 
-	FS_Path apath = { PATH_EMPTY, 1, "" };
-	FS_Path fpath = { PATH_UTF16, (units+1)*2, __utf16path };
-	Handle file = 0;
-	Result res = FSUSER_OpenFileDirectly(&file, ARCHIVE_SDMC, apath, fpath, FS_OPEN_READ, 0);
-	if(R_FAILED(res))
-	{
-		RARCH_LOG("RomFS: Error opening file\n");
-		return 1;
-	}
+   FS_Path apath = { PATH_EMPTY, 1, "" };
+   FS_Path fpath = { PATH_UTF16, (units+1)*2, __utf16path };
+   Handle file = 0;
+   Result res = FSUSER_OpenFileDirectly(&file, ARCHIVE_SDMC, apath, fpath, FS_OPEN_READ, 0);
+   if(R_FAILED(res))
+   {
+      RARCH_LOG("RomFS: Error opening file\n");
+      return 1;
+   }
 
-	_3DSX_Header hdr;
-	u32 bytesRead = 0;
-	res = FSFILE_Read(file, &bytesRead, 0, &hdr, sizeof(hdr));
-	if (R_FAILED(res))
-	{
-		FSFILE_Close(file);
-		return 1;
-	}
-	if (bytesRead != sizeof(hdr) || hdr.magic != _3DSX_MAGIC || hdr.headerSize < sizeof(hdr))
-	{
-		FSFILE_Close(file);
-		return 1;
-	}
-	res = romfsMountFromFile(file, hdr.fsOffset, "asset");
-	if(R_FAILED(res))
-	{
-		FSFILE_Close(file);
-		RARCH_LOG("RomFS: Error opening romfs from file\n");
-		return 1;
-	}
-	return 0;
+   _3DSX_Header hdr;
+   u32 bytesRead = 0;
+   res = FSFILE_Read(file, &bytesRead, 0, &hdr, sizeof(hdr));
+   if (R_FAILED(res))
+   {
+      FSFILE_Close(file);
+      return 1;
+   }
+   if (bytesRead != sizeof(hdr) || hdr.magic != _3DSX_MAGIC || hdr.headerSize < sizeof(hdr))
+   {
+      FSFILE_Close(file);
+      return 1;
+   }
+   res = romfsMountFromFile(file, hdr.fsOffset, "asset");
+   if(R_FAILED(res))
+   {
+      FSFILE_Close(file);
+      RARCH_LOG("RomFS: Error opening romfs from file\n");
+      return 1;
+   }
+   return 0;
 }
 #endif
 
@@ -573,14 +573,16 @@ static void frontend_ctr_init(void* data)
    mcuHwcInit();
 #ifdef HAVE_ROMFS
    if (envIsHomebrew()) {
-      if (ctr_init_asset("sdmc:/3ds/retroarch/retroarch.3dsx") !=0) {
-		  RARCH_LOG("RomFS: error 3ds/retroarch/retroarch.3dsx\n");
-	  }
+      if (ctr_init_asset("sdmc:/3ds/retroarch/retroarch.3dsx") !=0)
+      {
+         RARCH_LOG("RomFS: error 3ds/retroarch/retroarch.3dsx\n");
+      }
    } else {
-	  /* retroarch.3dsx renamed */
-      if (ctr_init_asset("sdmc:/retroarch/retroarch.bin") !=0) {
-		  RARCH_LOG("RomFS: error retroarch/retroarch.bin\n");
-	  }
+      /* retroarch.3dsx renamed */
+      if (ctr_init_asset("sdmc:/retroarch/retroarch.bin") !=0)
+      {
+         RARCH_LOG("RomFS: error retroarch/retroarch.bin\n");
+      }
    }
 #endif
 #endif

@@ -21,7 +21,7 @@ APP_SYSTEM_MODE_EXT  = 124MB
 APP_HAVE_ROMFS       = 1
 
 ifeq ($(APP_HAVE_ROMFS), 1)
-APP_ROMFS            = pkg/ctr/build/retroarch
+APP_ROMFS            = pkg/ctr/build/romfs
 endif
 
 OBJ := ctr/ctr_system.o \

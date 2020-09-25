@@ -172,6 +172,8 @@ if [ $SALAMANDER = "yes" ]; then
    fi
    if [ $PLATFORM = "ctr" ] ; then
    mv -f ../retroarch_3ds_salamander.cia ../pkg/${platform}/build/cia/retroarch_3ds.cia
+   mkdir -p ../pkg/${platform}/build/cia/retroarch
+   cp -f ../retroarch_3ds_salamander.3dsx ../pkg/${platform}/build/cia/retroarch/retroarch.bin
    mkdir -p ../pkg/${platform}/build/3dsx/3ds/RetroArch
    mv -f ../retroarch_3ds_salamander.3dsx ../pkg/${platform}/build/3dsx/3ds/RetroArch/RetroArch.3dsx
    mv -f ../retroarch_3ds_salamander.smdh ../pkg/${platform}/build/3dsx/3ds/RetroArch/RetroArch.smdh
