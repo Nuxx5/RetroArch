@@ -42,7 +42,6 @@
 
 #define MAX_MSG_LEN_CHUNK 64
 
-
 typedef struct
 {
    gl1_t *gl;
@@ -244,7 +243,7 @@ static int gl1_get_message_width(void *data, const char *msg,
 static void gl1_raster_font_draw_vertices(gl1_raster_t *font,
       const video_coords_t *coords)
 {
-#ifdef VITA
+#if defined(VITA) || defined(HAVE_PICAGL)
    static float *vertices3 = NULL;
 #endif
 
@@ -266,7 +265,7 @@ static void gl1_raster_font_draw_vertices(gl1_raster_t *font,
    glEnableClientState(GL_VERTEX_ARRAY);
    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-#ifdef VITA
+#if defined(VITA) || defined(HAVE_PICAGL)
    if (vertices3)
       free(vertices3);
    vertices3 = (float*)malloc(sizeof(float) * 3 * coords->vertices);

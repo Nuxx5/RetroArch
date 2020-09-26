@@ -137,7 +137,7 @@ static void gfx_display_gl1_draw(gfx_display_ctx_draw_t *draw,
    glEnableClientState(GL_VERTEX_ARRAY);
    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-#ifdef VITA
+#if defined(VITA) || defined(HAVE_PICAGL)
    {
       unsigned i;
       static float *vertices3 = NULL;

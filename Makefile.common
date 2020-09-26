@@ -1391,6 +1391,13 @@ ifeq ($(HAVE_VITAGL), 1)
           gfx/drivers_display/gfx_display_gl1.o
 endif
 
+ifeq ($(HAVE_PICAGL), 1)
+   OBJ += gfx/drivers/gl1.o \
+          gfx/drivers_font/gl1_raster_font.o \
+          gfx/drivers_context/ctr_ctx.o \
+          menu/drivers_display/menu_display_gl1.o
+endif
+
 ifeq ($(HAVE_GL_CONTEXT), 1)
    ifeq ($(HAVE_GL_MODERN), 1)
       DEFINES += -DHAVE_OPENGL

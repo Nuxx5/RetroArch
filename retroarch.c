@@ -608,6 +608,9 @@ static const gfx_ctx_driver_t *gfx_ctx_gl_drivers[] = {
 #if defined(VITA)
    &vita_ctx,
 #endif
+#if defined(_3DS)
+   &ctr_ctx,
+#endif
 #if defined(HAVE_LIBNX) && defined(HAVE_OPENGL)
    &switch_ctx,
 #endif

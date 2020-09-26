@@ -279,6 +279,8 @@ VIDEO CONTEXT
 #include "../gfx/drivers_context/emscriptenegl_ctx.c"
 #elif defined(__APPLE__) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(TARGET_OS_IPHONE)
 #include "../gfx/drivers_context/cgl_ctx.c"
+#elif defined(_3DS)
+#include "../gfx/drivers_context/ctr_ctx.c"
 #endif
 
 #if defined(HAVE_VIVANTE_FBDEV)

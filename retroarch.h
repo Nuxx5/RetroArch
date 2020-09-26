@@ -1888,6 +1888,7 @@ extern const gfx_ctx_driver_t gfx_ctx_gdi;
 extern const gfx_ctx_driver_t gfx_ctx_fpga;
 extern const gfx_ctx_driver_t gfx_ctx_sixel;
 extern const gfx_ctx_driver_t gfx_ctx_network;
+extern const gfx_ctx_driver_t ctr_ctx;
 extern const gfx_ctx_driver_t switch_ctx;
 extern const gfx_ctx_driver_t orbis_ctx;
 extern const gfx_ctx_driver_t vita_ctx;
