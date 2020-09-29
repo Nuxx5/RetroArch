@@ -133,11 +133,32 @@ static void gfx_display_gl1_draw(gfx_display_ctx_draw_t *draw,
    glPushMatrix();
    glLoadIdentity();
 
+#ifdef _3DS
+ glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+   glBegin(GL_QUADS);
+   {
+      glTexCoord2f(0.0f, 0.0f);
+      glVertex2f(-1.0f, 1.0f);
+
+      glTexCoord2f(0.0f, 1.0f);
+      glVertex2f(-1.0f, -1.0f);
+
+      glTexCoord2f(1.0f, 0.0f);
+      glVertex2f(1.0f, 1.0f);
+
+      glTexCoord2f(1.0f, 1.0f);
+      glVertex2f(1.0f, -1.0f);
+   }
+   glEnd();
+
+#else
+
    glEnableClientState(GL_COLOR_ARRAY);
    glEnableClientState(GL_VERTEX_ARRAY);
    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-#if defined(VITA) || defined(HAVE_PICAGL)
+#ifdef VITA
    {
       unsigned i;
       static float *vertices3 = NULL;
@@ -152,6 +173,7 @@ static void gfx_display_gl1_draw(gfx_display_ctx_draw_t *draw,
       }
       glVertexPointer(3, GL_FLOAT, 0, vertices3);   
    }
+
 #else
    glVertexPointer(2, GL_FLOAT, 0, draw->coords->vertex);
 #endif
@@ -165,6 +187,8 @@ static void gfx_display_gl1_draw(gfx_display_ctx_draw_t *draw,
    glDisableClientState(GL_COLOR_ARRAY);
    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
    glDisableClientState(GL_VERTEX_ARRAY);
+
+#endif //_3DS
 
    glMatrixMode(GL_MODELVIEW);
    glPopMatrix();

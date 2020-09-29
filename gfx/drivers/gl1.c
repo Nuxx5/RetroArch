@@ -652,6 +652,7 @@ static void draw_tex(gl1_t *gl1, int pot_width, int pot_height, int width, int h
    if (gl1->rotation && tex == gl1->tex)
       glRotatef(gl1->rotation, 0.0f, 0.0f, 1.0f);
    
+#ifndef _3DS
    glEnableClientState(GL_COLOR_ARRAY);
    glEnableClientState(GL_VERTEX_ARRAY);
    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -665,6 +666,46 @@ static void draw_tex(gl1_t *gl1, int pot_width, int pot_height, int width, int h
    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
    glDisableClientState(GL_VERTEX_ARRAY);
    glDisableClientState(GL_COLOR_ARRAY);
+#else
+   glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+   glBegin(GL_QUADS);
+
+   {
+      float tex_BL[2]      = {0.0f, 0.0f};
+      float tex_BR[2]      = {1.0f, 0.0f};
+      float tex_TL[2]      = {0.0f, 1.0f};
+      float tex_TR[2]      = {1.0f, 1.0f};
+      float *tex_mirror_BL = tex_TL;
+      float *tex_mirror_BR = tex_TR;
+      float *tex_mirror_TL = tex_BL;
+      float *tex_mirror_TR = tex_BR;
+// 	  float norm_width     = (1.0f / (float)pot_width) * (float)width;
+//     float norm_height    = (1.0f / (float)pot_height) * (float)height;
+
+      /* remove extra POT padding */
+      tex_mirror_BR[0] = norm_width;
+      tex_mirror_TR[0] = norm_width;
+
+      /* normally this would be 1.0 - height, but we're drawing upside-down */
+      tex_mirror_BL[1] = norm_height;
+      tex_mirror_BR[1] = norm_height;
+
+      glTexCoord2f(tex_mirror_BL[0], tex_mirror_BL[1]);
+      glVertex2f(-1.0f, 1.0f);
+
+      glTexCoord2f(tex_mirror_TL[0], tex_mirror_TL[1]);
+      glVertex2f(1.0f, 1.0f);
+
+      glTexCoord2f(tex_mirror_TR[0], tex_mirror_TR[1]);
+      glVertex2f(1.0f, -1.0f);
+
+      glTexCoord2f(tex_mirror_BR[0], tex_mirror_BR[1]);
+      glVertex2f(-1.0f, -1.0f);
+   }
+
+   glEnd();
+#endif //_3DS
 
    glMatrixMode(GL_MODELVIEW);
    glPopMatrix();
