@@ -28,21 +28,6 @@
 #include "../font_driver.h"
 #include "../common/d3d10_common.h"
 
-static const float* gfx_display_d3d10_get_default_vertices(void)
-{
-   return NULL;
-}
-
-static const float* gfx_display_d3d10_get_default_tex_coords(void)
-{
-   return NULL;
-}
-
-static void* gfx_display_d3d10_get_default_mvp(void *data)
-{
-   return NULL;
-}
-
 static void gfx_display_d3d10_blend_begin(void *data)
 {
    d3d10_video_t* d3d10 = (d3d10_video_t*)data;
@@ -57,12 +42,10 @@ static void gfx_display_d3d10_blend_end(void *data)
          d3d10->blend_disable, NULL, D3D10_DEFAULT_SAMPLE_MASK);
 }
 
-static void gfx_display_d3d10_viewport(gfx_display_ctx_draw_t *draw, void *data) { }
-
 static void gfx_display_d3d10_draw(gfx_display_ctx_draw_t *draw,
       void *data, unsigned video_width, unsigned video_height)
 {
-   int vertex_count;
+   int vertex_count     = 1;
    d3d10_video_t* d3d10 = (d3d10_video_t*)data;
 
    if (!d3d10 || !draw || !draw->texture)
@@ -88,8 +71,6 @@ static void gfx_display_d3d10_draw(gfx_display_ctx_draw_t *draw,
 
    if (draw->coords->vertex && draw->coords->tex_coord && draw->coords->color)
       vertex_count = draw->coords->vertices;
-   else
-      vertex_count = 1;
 
    if (!d3d10->sprites.enabled || vertex_count > d3d10->sprites.capacity)
       return;
@@ -293,12 +274,11 @@ void gfx_display_d3d10_scissor_end(void *data,
 gfx_display_ctx_driver_t gfx_display_ctx_d3d10 = {
    gfx_display_d3d10_draw,
    gfx_display_d3d10_draw_pipeline,
-   gfx_display_d3d10_viewport,
    gfx_display_d3d10_blend_begin,
    gfx_display_d3d10_blend_end,
-   gfx_display_d3d10_get_default_mvp,
-   gfx_display_d3d10_get_default_vertices,
-   gfx_display_d3d10_get_default_tex_coords,
+   NULL,                                     /* get_default_mvp        */
+   NULL,                                     /* get_default_vertices   */
+   NULL,                                     /* get_default_tex_coords */
    gfx_display_d3d10_font_init_first,
    GFX_VIDEO_DRIVER_DIRECT3D10,
    "d3d10",

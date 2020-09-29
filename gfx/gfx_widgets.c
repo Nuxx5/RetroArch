@@ -823,7 +823,9 @@ void gfx_widgets_iterate(
     * factor have changed */
    float scale_factor               = 0.0f;
 #ifdef HAVE_XMB
-   if (gfx_display_get_driver_id() == MENU_DRIVER_ID_XMB)
+   gfx_display_t *p_disp            = disp_get_ptr();
+   enum menu_driver_id_type type    = p_disp->menu_driver_id;
+   if (type == MENU_DRIVER_ID_XMB)
       scale_factor                  = gfx_display_get_widget_pixel_scale(width, height, fullscreen);
    else
 #endif
@@ -1163,8 +1165,9 @@ static void gfx_widgets_draw_task_msg(
    {
       gfx_widgets_flush_text(video_width, video_height,
             &p_dispwidget->gfx_widget_fonts.msg_queue);
-      gfx_display_scissor_end(userdata,
-            video_width, video_height);
+      if (dispctx && dispctx->scissor_end)
+         dispctx->scissor_end(userdata,
+               video_width, video_height);
    }
 
    /* Progress text */
@@ -1274,8 +1277,9 @@ static void gfx_widgets_draw_regular_msg(
       gfx_widgets_flush_text(video_width, video_height, &p_dispwidget->gfx_widget_fonts.bold);
       gfx_widgets_flush_text(video_width, video_height, &p_dispwidget->gfx_widget_fonts.msg_queue);
 
-      gfx_display_scissor_end(userdata,
-            video_width, video_height);
+      if (dispctx && dispctx->scissor_end)
+         dispctx->scissor_end(userdata,
+               video_width, video_height);
    }
 
    if (p_dispwidget->msg_queue_has_icons)
@@ -1809,6 +1813,9 @@ static void gfx_widgets_context_reset(
    char monochrome_png_path[PATH_MAX_LENGTH];
    char gfx_widgets_path[PATH_MAX_LENGTH];
    char theme_path[PATH_MAX_LENGTH];
+#ifdef HAVE_XMB
+   gfx_display_t *p_disp            = disp_get_ptr();
+#endif
 
    xmb_path[0]            = '\0';
    monochrome_png_path[0] = '\0';
@@ -1900,7 +1907,7 @@ static void gfx_widgets_context_reset(
    p_dispwidget->last_video_width     = width;
    p_dispwidget->last_video_height    = height;
 #ifdef HAVE_XMB
-   if (gfx_display_get_driver_id() == MENU_DRIVER_ID_XMB)
+   if (p_disp->menu_driver_id == MENU_DRIVER_ID_XMB)
       p_dispwidget->last_scale_factor = gfx_display_get_widget_pixel_scale(
             p_dispwidget->last_video_width,
             p_dispwidget->last_video_height, fullscreen);
@@ -2042,6 +2049,35 @@ static void gfx_widgets_free(dispgfx_widget_t *p_dispwidget)
 }
 
 #ifdef HAVE_TRANSLATE
+/* NOTE: Reads image from memory buffer */
+static bool gfx_widgets_reset_textures_list_buffer(
+        uintptr_t *item, enum texture_filter_type filter_type,
+        void* buffer, unsigned buffer_len, enum image_type_enum image_type,
+        unsigned *width, unsigned *height)
+{
+   struct texture_image ti;
+
+   ti.width                      = 0;
+   ti.height                     = 0;
+   ti.pixels                     = NULL;
+   ti.supports_rgba              = video_driver_supports_rgba();
+
+   if (!image_texture_load_buffer(&ti, image_type, buffer, buffer_len))
+      return false;
+
+   if (width)
+      *width = ti.width;
+
+   if (height)
+      *height = ti.height;
+
+   /* if the poke interface doesn't support texture load then return false */  
+   if (!video_driver_texture_load(&ti, filter_type, item))
+       return false;
+   image_texture_free(&ti);
+   return true;
+}
+
 bool gfx_widgets_ai_service_overlay_load(
       dispgfx_widget_t *p_dispwidget,
       char* buffer, unsigned buffer_len,
@@ -2049,7 +2085,7 @@ bool gfx_widgets_ai_service_overlay_load(
 {
    if (p_dispwidget->ai_service_overlay_state == 0)
    {
-      bool res = gfx_display_reset_textures_list_buffer(
+      bool res = gfx_widgets_reset_textures_list_buffer(
                &p_dispwidget->ai_service_overlay_texture, 
                TEXTURE_FILTER_MIPMAP_LINEAR, 
                (void *) buffer, buffer_len, image_type,

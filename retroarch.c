@@ -5374,7 +5374,7 @@ static int menu_entries_elem_get_first_char(
       if ((path = list->list[offset].alt
          ? list->list[offset].alt
          : list->list[offset].path))
-         ret = tolower((int)*path);
+         ret = TOLOWER((int)*path);
 
    /* "Normalize" non-alphabetical entries so they
     * are lumped together for purposes of jumping. */
@@ -6775,8 +6775,9 @@ bool menu_driver_list_cache(menu_ctx_list_t *list)
 static void menu_driver_set_id(struct rarch_state *p_rarch)
 {
    const char        *driver_name = NULL;
+   gfx_display_t         *p_disp  = &p_rarch->dispgfx;
 
-   gfx_display_set_driver_id(MENU_DRIVER_ID_UNKNOWN);
+   p_disp->menu_driver_id = MENU_DRIVER_ID_UNKNOWN;
 
    if (!p_rarch->menu_driver_ctx || !p_rarch->menu_driver_ctx->ident)
       return;
@@ -6787,17 +6788,15 @@ static void menu_driver_set_id(struct rarch_state *p_rarch)
       return;
 
    if (string_is_equal(driver_name, "rgui"))
-      gfx_display_set_driver_id(MENU_DRIVER_ID_RGUI);
+      p_disp->menu_driver_id = MENU_DRIVER_ID_RGUI;
    else if (string_is_equal(driver_name, "ozone"))
-      gfx_display_set_driver_id(MENU_DRIVER_ID_OZONE);
+      p_disp->menu_driver_id = MENU_DRIVER_ID_OZONE;
    else if (string_is_equal(driver_name, "glui"))
-      gfx_display_set_driver_id(MENU_DRIVER_ID_GLUI);
+      p_disp->menu_driver_id = MENU_DRIVER_ID_GLUI;
    else if (string_is_equal(driver_name, "xmb"))
-      gfx_display_set_driver_id(MENU_DRIVER_ID_XMB);
-   else if (string_is_equal(driver_name, "xui"))
-      gfx_display_set_driver_id(MENU_DRIVER_ID_XUI);
+      p_disp->menu_driver_id = MENU_DRIVER_ID_XMB;
    else if (string_is_equal(driver_name, "stripes"))
-      gfx_display_set_driver_id(MENU_DRIVER_ID_STRIPES);
+      p_disp->menu_driver_id = MENU_DRIVER_ID_STRIPES;
 }
 
 static bool generic_menu_init_list(void *data)
@@ -6869,6 +6868,7 @@ static bool menu_driver_init_internal(
 bool menu_driver_init(bool video_is_threaded)
 {
    struct rarch_state       *p_rarch = &rarch_st;
+   gfx_display_t            *p_disp  = &p_rarch->dispgfx;
 
    command_event(CMD_EVENT_CORE_INFO_INIT, NULL);
    command_event(CMD_EVENT_LOAD_CORE_PERSIST, NULL);
@@ -6888,7 +6888,7 @@ bool menu_driver_init(bool video_is_threaded)
 
    /* If driver initialisation failed, must reset
     * driver id to 'unknown' */
-   gfx_display_set_driver_id(MENU_DRIVER_ID_UNKNOWN);
+   p_disp->menu_driver_id = MENU_DRIVER_ID_UNKNOWN;
 
    return false;
 }
@@ -7589,6 +7589,7 @@ static bool driver_ctl_find_index(driver_ctx_info_t *drv)
 bool menu_driver_ctl(enum rarch_menu_ctl_state state, void *data)
 {
    struct rarch_state   *p_rarch  = &rarch_st;
+   gfx_display_t         *p_disp  = &p_rarch->dispgfx;
    struct menu_state    *menu_st  = &p_rarch->menu_driver_state;
 
    switch (state)
@@ -7686,8 +7687,7 @@ bool menu_driver_ctl(enum rarch_menu_ctl_state state, void *data)
             if (p_rarch->menu_userdata)
                free(p_rarch->menu_userdata);
             p_rarch->menu_userdata = NULL;
-
-            gfx_display_set_driver_id(MENU_DRIVER_ID_UNKNOWN);
+            p_disp->menu_driver_id = MENU_DRIVER_ID_UNKNOWN;
 
 #ifndef HAVE_DYNAMIC
             if (frontend_driver_has_fork())
@@ -8998,7 +8998,7 @@ void discord_update(enum discord_presence presence)
          discord_st->presence.details        = msg_hash_to_str(
                MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME_PAUSED);
          discord_st->pause_time              = time(0);
-         discord_st->elapsed_time            = difftime(time(0),
+         discord_st->elapsed_time            = difftime(discord_st->pause_time,
                discord_st->start_time);
          discord_st->presence.startTimestamp = discord_st->pause_time;
          break;
@@ -9048,7 +9048,12 @@ void discord_update(enum discord_presence presence)
                discord_st->presence.smallImageText = msg_hash_to_str(
                      MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PLAYING);
                discord_st->presence.startTimestamp = discord_st->start_time;
-               discord_st->presence.details        = msg_hash_to_str(
+
+#ifdef HAVE_CHEEVOS
+               discord_st->presence.details        = rcheevos_get_richpresence();
+               if (!discord_st->presence.details || !*discord_st->presence.details)
+#endif
+                   discord_st->presence.details    = msg_hash_to_str(
                      MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME);
 
                discord_st->presence.state          = label;
@@ -9119,6 +9124,9 @@ void discord_update(enum discord_presence presence)
          break;
 #ifdef HAVE_CHEEVOS
       case DISCORD_PRESENCE_RETROACHIEVEMENTS:
+         if (discord_st->pause_time)
+            return;
+
          discord_st->presence.details = rcheevos_get_richpresence();
          presence = DISCORD_PRESENCE_GAME;
          break;
@@ -15048,7 +15056,7 @@ static void command_event_set_savestate_auto_index(
          continue;
 
       end = dir_elem + strlen(dir_elem);
-      while ((end > dir_elem) && isdigit((int)end[-1]))
+      while ((end > dir_elem) && ISDIGIT((int)end[-1]))
          end--;
 
       idx = (unsigned)strtoul(end, NULL, 0);
@@ -15763,7 +15771,7 @@ static void command_event_reinit(struct rarch_state *p_rarch,
    command_event(CMD_EVENT_GAME_FOCUS_TOGGLE, (void*)(intptr_t)-1);
 
 #ifdef HAVE_MENU
-   gfx_display_set_framebuffer_dirty_flag();
+   p_rarch->dispgfx.framebuf_dirty = true;
    if (video_fullscreen)
       video_driver_hide_mouse();
    if (p_rarch->menu_driver_alive && p_rarch->current_video->set_nonblock_state)
@@ -17910,7 +17918,7 @@ static const char *core_option_manager_parse_value_label(
    /* Any label starting with a digit (or +/-)
     * cannot be a boolean string, and requires
     * no further processing */
-   if (isdigit((unsigned char)*label) ||
+   if (ISDIGIT((unsigned char)*label) ||
        (*label == '+') ||
        (*label == '-'))
       return label;
@@ -28034,8 +28042,8 @@ static const char *input_config_get_prefix(unsigned user, bool meta)
 enum retro_key input_config_translate_str_to_rk(const char *str)
 {
    size_t i;
-   if (strlen(str) == 1 && isalpha((int)*str))
-      return (enum retro_key)(RETROK_a + (tolower((int)*str) - (int)'a'));
+   if (strlen(str) == 1 && ISALPHA((int)*str))
+      return (enum retro_key)(RETROK_a + (TOLOWER((int)*str) - (int)'a'));
    for (i = 0; input_config_key_map[i].str; i++)
    {
       if (string_is_equal_noncase(input_config_key_map[i].str, str))
@@ -28143,7 +28151,7 @@ static void input_config_parse_joy_button(
          if (*btn == 'h')
          {
             const char *str = btn + 1;
-            if (str && isdigit((int)*str))
+            if (str && ISDIGIT((int)*str))
                parse_hat(bind, str);
          }
          else
@@ -32422,13 +32430,49 @@ bool video_driver_get_video_output_size(unsigned *width, unsigned *height)
    return true;
 }
 
-void video_driver_set_osd_msg(const char *msg, const void *data, void *font)
+/* Draw text on top of the screen */
+void gfx_display_draw_text(
+      const font_data_t *font, const char *text,
+      float x, float y, int width, int height,
+      uint32_t color, enum text_alignment text_align,
+      float scale, bool shadows_enable, float shadow_offset,
+      bool draw_outside)
 {
+   struct font_params params;
    struct rarch_state            *p_rarch = &rarch_st;
+
+   if ((color & 0x000000FF) == 0)
+      return;
+
+   /* Don't draw outside of the screen */
+   if (!draw_outside &&
+           ((x < -64 || x > width  + 64)
+         || (y < -64 || y > height + 64))
+      )
+      return;
+
+   params.x           = x / width;
+   params.y           = 1.0f - y / height;
+   params.scale       = scale;
+   params.drop_mod    = 0.0f;
+   params.drop_x      = 0.0f;
+   params.drop_y      = 0.0f;
+   params.color       = color;
+   params.full_screen = true;
+   params.text_align  = text_align;
+
+   if (shadows_enable)
+   {
+      params.drop_x      = shadow_offset;
+      params.drop_y      = -shadow_offset;
+      params.drop_alpha  = 0.35f;
+   }
+
    if (p_rarch->video_driver_poke && p_rarch->video_driver_poke->set_osd_msg)
       p_rarch->video_driver_poke->set_osd_msg(p_rarch->video_driver_data,
-            msg, data, font);
+            text, &params, (void*)font);
 }
+
 
 void video_driver_set_texture_enable(bool enable, bool fullscreen)
 {
@@ -39360,7 +39404,7 @@ static enum runloop_state runloop_check_state(
                BIT64_SET(menu->state, MENU_STATE_RENDER_FRAMEBUFFER);
 
             if (BIT64_GET(menu->state, MENU_STATE_RENDER_FRAMEBUFFER))
-               gfx_display_set_framebuffer_dirty_flag();
+               p_rarch->dispgfx.framebuf_dirty = true;
 
             if (BIT64_GET(menu->state, MENU_STATE_RENDER_MESSAGEBOX)
                   && !string_is_empty(menu->menu_state_msg))

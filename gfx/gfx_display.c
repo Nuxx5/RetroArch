@@ -40,15 +40,6 @@
  * needs to be refactored */
 uintptr_t gfx_display_white_texture;
 
-static void *gfx_display_null_get_default_mvp(void *data) { return NULL; }
-static void gfx_display_null_blend_begin(void *data) { }
-static void gfx_display_null_blend_end(void *data) { }
-static void gfx_display_null_draw(gfx_display_ctx_draw_t *draw,
-      void *data, unsigned width, unsigned height) { }
-static void gfx_display_null_draw_pipeline(gfx_display_ctx_draw_t *draw,
-      void *data, unsigned width, unsigned height) { }
-static void gfx_display_null_viewport(gfx_display_ctx_draw_t *draw, void *data) { }
-
 static bool gfx_display_null_font_init_first(
       void **font_handle, void *video_data,
       const char *font_path, float font_size,
@@ -76,12 +67,11 @@ static const float *gfx_display_null_get_default_tex_coords(void)
 }
 
 gfx_display_ctx_driver_t gfx_display_ctx_null = {
-   gfx_display_null_draw,
-   gfx_display_null_draw_pipeline,
-   gfx_display_null_viewport,
-   gfx_display_null_blend_begin,
-   gfx_display_null_blend_end,
-   gfx_display_null_get_default_mvp,
+   NULL,                                     /* draw            */
+   NULL,                                     /* draw_pipeline   */
+   NULL,                                     /* blend_begin     */
+   NULL,                                     /* blend_end       */
+   NULL,                                     /* get_default_mvp */
    gfx_display_null_get_default_vertices,
    gfx_display_null_get_default_tex_coords,
    gfx_display_null_font_init_first,
@@ -163,12 +153,10 @@ static float gfx_display_get_adjusted_scale_internal(
    /* Ozone has a capped scale factor */
    if (p_disp->menu_driver_id == MENU_DRIVER_ID_OZONE)
    {
-      float new_width = (float)width * 0.3333333f;
-      adjusted_scale  = 
-         (((float)OZONE_SIDEBAR_WIDTH * adjusted_scale) 
-          > new_width
-          ? (new_width / (float)OZONE_SIDEBAR_WIDTH) 
-          : adjusted_scale);
+      float new_width    = (float)width * 0.3333333f;
+      if (((float)OZONE_SIDEBAR_WIDTH * adjusted_scale)
+            > new_width)
+         adjusted_scale  = (new_width / (float)OZONE_SIDEBAR_WIDTH);
    }
 #endif
 
@@ -253,20 +241,8 @@ static bool gfx_display_check_compatibility(
    return false;
 }
 
-
-void gfx_display_set_driver_id(enum menu_driver_id_type type)
-{
-   gfx_display_t *p_disp  = disp_get_ptr();
-   p_disp->menu_driver_id = type;
-}
-
-enum menu_driver_id_type gfx_display_get_driver_id(void)
-{
-   gfx_display_t *p_disp  = disp_get_ptr();
-   return p_disp->menu_driver_id;
-}
-
-static float gfx_display_get_dpi_scale_internal(unsigned width, unsigned height)
+static float gfx_display_get_dpi_scale_internal(
+      unsigned width, unsigned height)
 {
    float dpi;
    float diagonal_pixels;
@@ -321,7 +297,7 @@ static float gfx_display_get_dpi_scale_internal(unsigned width, unsigned height)
        * I've had access to, the DPI is generally
        * overestimated by 17%. All we can do is apply
        * a blind correction factor... */
-      dpi = dpi * 0.83f;
+      dpi *= 0.83f;
 #endif
 
       /* Note: If we are running in windowed mode, this
@@ -369,11 +345,12 @@ static float gfx_display_get_dpi_scale_internal(unsigned width, unsigned height)
           *   is almost a certainty. So we simply lerp between
           *   dpi scaling and pixel scaling as the display size
           *   increases from 24 to 32 */
-         float fraction = (display_size > 32.0f) ? 32.0f : display_size;
-         fraction       = fraction - 24.0f;
-         fraction       = fraction / (32.0f - 24.0f);
+         float fraction  = (display_size > 32.0f) ? 32.0f : display_size;
+         fraction       -= 24.0f;
+         fraction       /= (32.0f - 24.0f);
 
-         scale = ((1.0f - fraction) * dpi_scale) + (fraction * pixel_scale);
+         scale           =   ((1.0f - fraction) * dpi_scale) 
+                           + (fraction * pixel_scale);
       }
       else if (display_size < 12.0f)
       {
@@ -388,19 +365,20 @@ static float gfx_display_get_dpi_scale_internal(unsigned width, unsigned height)
           * to pixel scaling */
          float fraction = display_size / 12.0f;
 
-         scale = ((1.0f - fraction) * pixel_scale) + (fraction * dpi_scale);
+         scale          =   ((1.0f - fraction) * pixel_scale) 
+                          + (fraction * dpi_scale);
       }
       else
-         scale = dpi_scale;
+         scale          = dpi_scale;
    }
    /* If DPI retrieval is unsupported, all we can do
     * is use the raw pixel scale */
    else
-      scale = pixel_scale;
+      scale             = pixel_scale;
 
-   scale_cached = true;
-   last_width   = width;
-   last_height  = height;
+   scale_cached         = true;
+   last_width           = width;
+   last_height          = height;
 
    return scale;
 }
@@ -463,7 +441,6 @@ float gfx_display_get_widget_dpi_scale(
    static float adjusted_scale                         = 1.0f;
    settings_t *settings                                = config_get_ptr();
    bool gfx_widget_scale_auto                          = settings->bools.menu_widget_scale_auto;
-   float _menu_scale_factor                            = settings->floats.menu_scale_factor;
 #if (defined(RARCH_CONSOLE) || defined(RARCH_MOBILE))
    float menu_widget_scale_factor                      = settings->floats.menu_widget_scale_factor;
 #else
@@ -487,7 +464,11 @@ float gfx_display_get_widget_dpi_scale(
          menu_scale_factor                             = 1.0f;
       else
 #endif
+      {
+         float _menu_scale_factor                      = 
+            settings->floats.menu_scale_factor;
          menu_scale_factor                             = _menu_scale_factor;
+      }
    }
 
    /* Scale is based on display metrics - these are a fixed
@@ -534,7 +515,6 @@ float gfx_display_get_widget_pixel_scale(
    static float adjusted_scale                         = 1.0f;
    settings_t *settings                                = config_get_ptr();
    bool gfx_widget_scale_auto                          = settings->bools.menu_widget_scale_auto;
-   float _menu_scale_factor                            = settings->floats.menu_scale_factor;
 #if (defined(RARCH_CONSOLE) || defined(RARCH_MOBILE))
    float menu_widget_scale_factor                      = settings->floats.menu_widget_scale_factor;
 #else
@@ -557,7 +537,11 @@ float gfx_display_get_widget_pixel_scale(
          menu_scale_factor                             = 1.0f;
       else
 #endif
+      {
+         float _menu_scale_factor                      = 
+            settings->floats.menu_scale_factor;
          menu_scale_factor                             = _menu_scale_factor;
+      }
    }
 
    /* We need to perform a square root here, which
@@ -595,16 +579,6 @@ float gfx_display_get_widget_pixel_scale(
    }
 
    return adjusted_scale;
-}
-
-/* Reset the display's coordinate array vertices.
- * NOTE: Not every display driver uses this. */
-void gfx_display_coords_array_reset(void)
-{
-   gfx_display_t            *p_disp  = disp_get_ptr();
-   video_coord_array_t *p_dispca     = &p_disp->dispca;
-
-   p_dispca->coords.vertices         = 0;
 }
 
 /* Begin scissoring operation */
@@ -654,20 +628,6 @@ void gfx_display_scissor_begin(void *userdata,
    }
 }
 
-/* End scissoring operation */
-void gfx_display_scissor_end(
-      void *userdata,
-      unsigned video_width,
-      unsigned video_height
-      )
-{
-   gfx_display_t            *p_disp  = disp_get_ptr();
-   gfx_display_ctx_driver_t *dispctx = p_disp->dispctx;
-   if (dispctx && dispctx->scissor_end)
-      dispctx->scissor_end(userdata,
-            video_width, video_height);
-}
-
 font_data_t *gfx_display_font_file(
       char* fontpath, float menu_font_size, bool is_threaded)
 {
@@ -707,9 +667,9 @@ void gfx_display_draw_bg(gfx_display_ctx_draw_t *draw,
    new_vertex           = draw->vertex;
    new_tex_coord        = draw->tex_coord;
 
-   if (!new_vertex)
+   if (!new_vertex    && dispctx->get_default_vertices)
       new_vertex        = dispctx->get_default_vertices();
-   if (!new_tex_coord)
+   if (!new_tex_coord && dispctx->get_default_tex_coords)
       new_tex_coord     = dispctx->get_default_tex_coords();
 
    coords.vertices      = (unsigned)draw->vertex_count;
@@ -1476,24 +1436,6 @@ void gfx_display_set_height(unsigned height)
    p_disp->framebuf_height = height;
 }
 
-void gfx_display_set_header_height(unsigned height)
-{
-   gfx_display_t *p_disp   = disp_get_ptr();
-   p_disp->header_height = height;
-}
-
-unsigned gfx_display_get_header_height(void)
-{
-   gfx_display_t *p_disp   = disp_get_ptr();
-   return p_disp->header_height;
-}
-
-size_t gfx_display_get_framebuffer_pitch(void)
-{
-   gfx_display_t *p_disp   = disp_get_ptr();
-   return p_disp->framebuf_pitch;
-}
-
 void gfx_display_set_framebuffer_pitch(size_t pitch)
 {
    gfx_display_t *p_disp   = disp_get_ptr();
@@ -1510,29 +1452,6 @@ void gfx_display_set_msg_force(bool state)
 {
    gfx_display_t *p_disp   = disp_get_ptr();
    p_disp->msg_force       = state;
-}
-
-/* Checks if the display framebuffer has its 'dirty flag' set. This
- * means that the current contents of the framebuffer has changed
- * and that it has to be rendered to the screen. */
-bool gfx_display_get_framebuffer_dirty_flag(void)
-{
-   gfx_display_t *p_disp = disp_get_ptr();
-   return p_disp->framebuf_dirty;
-}
-
-/* Set the display framebuffer's 'dirty flag'. */
-void gfx_display_set_framebuffer_dirty_flag(void)
-{
-   gfx_display_t *p_disp = disp_get_ptr();
-   p_disp->framebuf_dirty = true;
-}
-
-/* Unset the display framebufer's 'dirty flag'. */
-void gfx_display_unset_framebuffer_dirty_flag(void)
-{
-   gfx_display_t *p_disp = disp_get_ptr();
-   p_disp->framebuf_dirty = false;
 }
 
 void gfx_display_draw_keyboard(
@@ -1647,46 +1566,7 @@ void gfx_display_draw_keyboard(
    }
 }
 
-/* Draw text on top of the screen */
-void gfx_display_draw_text(
-      const font_data_t *font, const char *text,
-      float x, float y, int width, int height,
-      uint32_t color, enum text_alignment text_align,
-      float scale, bool shadows_enable, float shadow_offset,
-      bool draw_outside)
-{
-   struct font_params params;
-
-   if ((color & 0x000000FF) == 0)
-      return;
-
-   /* Don't draw outside of the screen */
-   if (!draw_outside &&
-           ((x < -64 || x > width  + 64)
-         || (y < -64 || y > height + 64))
-      )
-      return;
-
-   params.x           = x / width;
-   params.y           = 1.0f - y / height;
-   params.scale       = scale;
-   params.drop_mod    = 0.0f;
-   params.drop_x      = 0.0f;
-   params.drop_y      = 0.0f;
-   params.color       = color;
-   params.full_screen = true;
-   params.text_align  = text_align;
-
-   if (shadows_enable)
-   {
-      params.drop_x      = shadow_offset;
-      params.drop_y      = -shadow_offset;
-      params.drop_alpha  = 0.35f;
-   }
-
-   video_driver_set_osd_msg(text, &params, (void*)font);
-}
-
+/* NOTE: Reads image from file */
 bool gfx_display_reset_textures_list(
       const char *texture_path, const char *iconpath,
       uintptr_t *item, enum texture_filter_type filter_type,
@@ -1723,35 +1603,6 @@ bool gfx_display_reset_textures_list(
          filter_type, item);
    image_texture_free(&ti);
 
-   return true;
-}
-
-
-bool gfx_display_reset_textures_list_buffer(
-        uintptr_t *item, enum texture_filter_type filter_type,
-        void* buffer, unsigned buffer_len, enum image_type_enum image_type,
-        unsigned *width, unsigned *height)
-{
-   struct texture_image ti;
-
-   ti.width                      = 0;
-   ti.height                     = 0;
-   ti.pixels                     = NULL;
-   ti.supports_rgba              = video_driver_supports_rgba();
-
-   if (!image_texture_load_buffer(&ti, image_type, buffer, buffer_len))
-      return false;
-
-   if (width)
-      *width = ti.width;
-
-   if (height)
-      *height = ti.height;
-
-   /* if the poke interface doesn't support texture load then return false */  
-   if (!video_driver_texture_load(&ti, filter_type, item))
-       return false;
-   image_texture_free(&ti);
    return true;
 }
 

@@ -87,28 +87,10 @@ static unsigned to_menu_pipeline(
    }
    return 0;
 }
-#endif
-
-static void gfx_display_vk_viewport(gfx_display_ctx_draw_t *draw,
-      void *data)
-{
-   vk_t *vk                      = (vk_t*)data;
-
-   if (!vk || !draw)
-      return;
-
-   vk->vk_vp.x        = draw->x;
-   vk->vk_vp.y        = vk->context->swapchain_height - draw->y - draw->height;
-   vk->vk_vp.width    = draw->width;
-   vk->vk_vp.height   = draw->height;
-   vk->vk_vp.minDepth = 0.0f;
-   vk->vk_vp.maxDepth = 1.0f;
-}
 
 static void gfx_display_vk_draw_pipeline(gfx_display_ctx_draw_t *draw,
       void *data, unsigned video_width, unsigned video_height)
 {
-#ifdef HAVE_SHADERPIPELINE
    static uint8_t ubo_scratch_data[768];
    static float t                   = 0.0f;
    gfx_display_t *p_disp            = disp_get_ptr();
@@ -178,8 +160,8 @@ static void gfx_display_vk_draw_pipeline(gfx_display_ctx_draw_t *draw,
    }
 
    t += 0.01;
-#endif
 }
+#endif
 
 static void gfx_display_vk_draw(gfx_display_ctx_draw_t *draw,
       void *data, unsigned video_width, unsigned video_height)
@@ -212,7 +194,12 @@ static void gfx_display_vk_draw(gfx_display_ctx_draw_t *draw,
    if (!color)
       color                       = &vk_colors[0];
 
-   gfx_display_vk_viewport(draw, vk);
+   vk->vk_vp.x        = draw->x;
+   vk->vk_vp.y        = vk->context->swapchain_height - draw->y - draw->height;
+   vk->vk_vp.width    = draw->width;
+   vk->vk_vp.height   = draw->height;
+   vk->vk_vp.minDepth = 0.0f;
+   vk->vk_vp.maxDepth = 1.0f;
 
    vk->tracker.dirty |= VULKAN_DIRTY_DYNAMIC_BIT;
 
@@ -346,8 +333,11 @@ static void gfx_display_vk_scissor_end(void *data,
 
 gfx_display_ctx_driver_t gfx_display_ctx_vulkan = {
    gfx_display_vk_draw,
+#ifdef HAVE_SHADERPIPELINE
    gfx_display_vk_draw_pipeline,
-   gfx_display_vk_viewport,
+#else
+   NULL,                                  /* draw_pipeline */
+#endif
    gfx_display_vk_blend_begin,
    gfx_display_vk_blend_end,
    gfx_display_vk_get_default_mvp,

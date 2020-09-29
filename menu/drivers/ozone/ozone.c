@@ -805,12 +805,7 @@ static void ozone_update_thumbnail_image(void *data)
 
    gfx_thumbnail_cancel_pending_requests();
 
-   /* Image (and video/music) content requires special
-    * treatment... */
-   if (ozone->selection_core_is_viewer)
-   {
-      /* Only right thumbnail is loaded */
-      gfx_thumbnail_request(
+   gfx_thumbnail_request(
          ozone->thumbnail_path_data,
          GFX_THUMBNAIL_RIGHT,
          playlist,
@@ -820,21 +815,15 @@ static void ozone_update_thumbnail_image(void *data)
          network_on_demand_thumbnails
          );
 
+   /* Image (and video/music) content requires special
+    * treatment... */
+   if (ozone->selection_core_is_viewer)
+   {
       /* Left thumbnail is simply reset */
       gfx_thumbnail_reset(&ozone->thumbnails.left);
    }
    else
    {
-      /* Right thumbnail */
-      gfx_thumbnail_request(
-         ozone->thumbnail_path_data,
-         GFX_THUMBNAIL_RIGHT,
-         playlist,
-         selection,
-         &ozone->thumbnails.right,
-         gfx_thumbnail_upscale_threshold,
-         network_on_demand_thumbnails);
-
       /* Left thumbnail */
       gfx_thumbnail_request(
          ozone->thumbnail_path_data,
@@ -2664,6 +2653,8 @@ static void ozone_frame(void *data, video_frame_info_t *video_info)
    bool input_menu_swap_ok_cancel_buttons = video_info->input_menu_swap_ok_cancel_buttons;
    bool battery_level_enable              = video_info->battery_level_enable;
    bool timedate_enable                   = video_info->timedate_enable;
+   gfx_display_t            *p_disp       = disp_get_ptr();
+   gfx_display_ctx_driver_t *dispctx      = p_disp->dispctx;
 
 #if 0
    static bool reset                      = false;
@@ -2819,9 +2810,9 @@ static void ozone_frame(void *data, video_frame_info_t *video_info)
             libretro_running,
             menu_framebuffer_opacity);
 
-   gfx_display_scissor_end(userdata,
-         video_width,
-         video_height);
+   if (dispctx && dispctx->scissor_end)
+      dispctx->scissor_end(userdata,
+            video_width, video_height);
 
    /* Flush first layer of text */
    ozone_font_flush(video_width, video_height, &ozone->fonts.footer);
