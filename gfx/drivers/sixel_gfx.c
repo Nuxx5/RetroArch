@@ -592,6 +592,7 @@ video_driver_t video_sixel = {
    NULL, /* read_frame_raw */
 #ifdef HAVE_OVERLAY
    NULL, /* overlay_interface */
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
   NULL,

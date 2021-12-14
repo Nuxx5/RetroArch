@@ -502,6 +502,7 @@ typedef struct video_frame_info
    bool msg_bgcolor_enable;
    bool crt_switch_hires_menu;
    bool hdr_enable;
+   bool overlay_behind_menu;
 } video_frame_info_t;
 
 typedef void (*update_window_title_cb)(void*);
@@ -797,6 +798,9 @@ typedef struct video_driver
 #ifdef HAVE_OVERLAY
    void (*overlay_interface)(void *data,
          const video_overlay_interface_t **iface);
+
+   /* Does the video driver support drawing the overlay behind the menu? */
+   bool has_overlay_behind_menu;
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    const video_layout_render_interface_t *(*video_layout_render_interface)(void *data);
@@ -970,6 +974,8 @@ typedef struct video_frame_delay_auto {
 extern struct aspect_ratio_elem aspectratio_lut[ASPECT_RATIO_END];
 
 bool video_driver_has_windowed(void);
+
+bool video_driver_has_overlay_behind_menu(void);
 
 bool video_driver_has_focus(void);
 

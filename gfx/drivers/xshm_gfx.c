@@ -227,6 +227,7 @@ video_driver_t video_xshm = {
    NULL, /* read_frame_raw */
 #ifdef HAVE_OVERLAY
     NULL,
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
   NULL,

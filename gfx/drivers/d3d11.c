@@ -2420,6 +2420,7 @@ video_driver_t video_d3d11 = {
 
 #ifdef HAVE_OVERLAY
    d3d11_get_overlay_interface,
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,

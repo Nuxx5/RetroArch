@@ -259,6 +259,7 @@ video_driver_t video_null = {
 
 #ifdef HAVE_OVERLAY
   NULL, /* overlay_interface */
+  false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,
@@ -2779,6 +2780,7 @@ void video_driver_build_info(video_frame_info_t *video_info)
       settings->floats.menu_wallpaper_opacity;
    video_info->menu_framebuffer_opacity    =
       settings->floats.menu_framebuffer_opacity;
+   video_info->overlay_behind_menu         = settings->bools.input_overlay_behind_menu;
 
    video_info->libretro_running            = runloop_st->current_core.game_loaded;
 #else
@@ -2796,6 +2798,7 @@ void video_driver_build_info(video_frame_info_t *video_info)
    video_info->xmb_alpha_factor            = 0.0f;
    video_info->menu_framebuffer_opacity    = 0.0f;
    video_info->menu_wallpaper_opacity      = 0.0f;
+   video_info->overlay_behind_menu         = false;
 #endif
 
    video_info->runloop_is_paused             = runloop_st->paused;
@@ -3167,6 +3170,15 @@ bool video_driver_has_windowed(void)
       return video_st->current_video->has_windowed(video_st->data);
 #endif
    return false;
+}
+
+bool video_driver_has_overlay_behind_menu(void)
+{
+#ifdef HAVE_OVERLAY
+   return video_driver_st.current_video->has_overlay_behind_menu;
+#else
+   return false;
+#endif
 }
 
 bool video_driver_cached_frame_has_valid_framebuffer(void)

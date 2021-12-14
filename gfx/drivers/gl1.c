@@ -718,6 +718,7 @@ static bool gl1_gfx_frame(void *data, const void *frame,
    bool hard_sync                   = video_info->hard_sync;
    struct font_params *osd_params   = (struct font_params*)
       &video_info->osd_stat_params;
+   bool overlay_behind_menu         = video_info->overlay_behind_menu;
 
    /* FIXME: Force these settings off as they interfere with the rendering */
    video_info->xmb_shadows_enable   = false;
@@ -867,6 +868,11 @@ static bool gl1_gfx_frame(void *data, const void *frame,
       }
    }
 
+#ifdef HAVE_OVERLAY
+   if (gl1->overlay_enable && overlay_behind_menu)
+      gl1_render_overlay(gl1, video_width, video_height);
+#endif
+
    if (gl1->menu_texture_enable){
       do_swap = true;
 #ifdef VITA
@@ -904,7 +910,7 @@ static bool gl1_gfx_frame(void *data, const void *frame,
 #endif
 
 #ifdef HAVE_OVERLAY
-   if (gl1->overlay_enable)
+   if (gl1->overlay_enable && !overlay_behind_menu)
       gl1_render_overlay(gl1, video_width, video_height);
 #endif
 
@@ -1638,6 +1644,7 @@ video_driver_t video_gl1 = {
 
 #ifdef HAVE_OVERLAY
    gl1_get_overlay_interface,
+    true, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
   NULL,

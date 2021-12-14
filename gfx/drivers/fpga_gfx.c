@@ -423,6 +423,7 @@ video_driver_t video_fpga = {
 
 #ifdef HAVE_OVERLAY
   NULL, /* overlay_interface */
+   false, /* has_overlay_behind_menu */
 #endif
   fpga_gfx_get_poke_interface,
 };

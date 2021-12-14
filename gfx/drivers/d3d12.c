@@ -2302,6 +2302,7 @@ video_driver_t video_d3d12 = {
 
 #ifdef HAVE_OVERLAY
    d3d12_get_overlay_interface,
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,

@@ -801,6 +801,7 @@ video_driver_t video_oga = {
    NULL,
 #ifdef HAVE_OVERLAY
    NULL,
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,

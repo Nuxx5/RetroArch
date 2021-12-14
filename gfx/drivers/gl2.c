@@ -2841,6 +2841,7 @@ static bool gl2_frame(void *data, const void *frame,
    bool runloop_is_slowmotion          = video_info->runloop_is_slowmotion;
    bool runloop_is_paused              = video_info->runloop_is_paused;
 #endif
+   bool overlay_behind_menu            = video_info->overlay_behind_menu;
 
    if (!gl)
       return false;
@@ -3046,6 +3047,12 @@ static bool gl2_frame(void *data, const void *frame,
 #ifdef HAVE_VIDEO_LAYOUT
    gl2_video_layout_render(gl);
 #endif
+
+#ifdef HAVE_OVERLAY
+   if (gl->overlay_enable && overlay_behind_menu)
+      gl2_render_overlay(gl);
+#endif
+
 #if defined(HAVE_MENU)
    if (gl->menu_texture_enable)
    {
@@ -3063,7 +3070,7 @@ static bool gl2_frame(void *data, const void *frame,
 #endif
 
 #ifdef HAVE_OVERLAY
-   if (gl->overlay_enable)
+   if (gl->overlay_enable && !overlay_behind_menu)
       gl2_render_overlay(gl);
 #endif
 
@@ -4656,6 +4663,7 @@ video_driver_t video_gl2 = {
 
 #ifdef HAVE_OVERLAY
    gl2_get_overlay_interface,
+   true, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    gl2_get_video_layout_render_interface,

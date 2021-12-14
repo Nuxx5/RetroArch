@@ -434,6 +434,7 @@ static void video_thread_loop(void *data)
          bool               alive = false;
          bool               focus = false;
          bool        has_windowed = true;
+         bool has_overlay_behind_menu = false;
 
          vp.x                     = 0;
          vp.y                     = 0;
@@ -471,6 +472,11 @@ static void video_thread_loop(void *data)
          if (thr->driver && thr->driver->has_windowed)
             has_windowed = ret && thr->driver->has_windowed(thr->driver_data);
 
+#ifdef HAVE_OVERLAY
+         if (thr->driver)
+            has_overlay_behind_menu = ret && thr->driver->has_overlay_behind_menu;
+#endif
+
          if (thr->driver && thr->driver->viewport_info)
             thr->driver->viewport_info(thr->driver_data, &vp);
 
@@ -478,6 +484,7 @@ static void video_thread_loop(void *data)
          thr->alive         = alive;
          thr->focus         = focus;
          thr->has_windowed  = has_windowed;
+         thr->has_overlay_behind_menu = has_overlay_behind_menu;
          thr->frame.updated = false;
          thr->vp            = vp;
          scond_signal(thr->cond_cmd);
@@ -664,6 +671,7 @@ static bool video_thread_init(thread_video_t *thr,
    thr->alive                = true;
    thr->focus                = true;
    thr->has_windowed         = true;
+   thr->has_overlay_behind_menu = false;
    thr->suppress_screensaver = true;
 
    max_size                  = info.input_scale * RARCH_SCALE_BASE;
@@ -1265,6 +1273,7 @@ static const video_driver_t video_thread = {
    NULL, /* read_frame_raw */
 #ifdef HAVE_OVERLAY
    video_thread_get_overlay_interface, /* get_overlay_interface */
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,

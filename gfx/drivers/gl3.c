@@ -1866,6 +1866,7 @@ static bool gl3_frame(void *data, const void *frame,
    bool widgets_active                         = video_info->widgets_active;
 #endif
    bool hard_sync                              = video_info->hard_sync;
+   bool overlay_behind_menu                    = video_info->overlay_behind_menu;
 
    if (!gl)
       return false;
@@ -1939,6 +1940,11 @@ static bool gl3_frame(void *data, const void *frame,
                                             gl->hw_render_bottom_left ? gl->mvp.data : gl->mvp_yflip.data);
    gl3_filter_chain_end_frame(gl->filter_chain);
 
+#ifdef HAVE_OVERLAY
+   if (gl->overlay_enable && overlay_behind_menu)
+      gl3_render_overlay(gl, width, height);
+#endif
+
 #if defined(HAVE_MENU)
    if (gl->menu_texture_enable)
    {
@@ -1955,7 +1961,7 @@ static bool gl3_frame(void *data, const void *frame,
 #endif
 
 #ifdef HAVE_OVERLAY
-   if (gl->overlay_enable)
+   if (gl->overlay_enable && !overlay_behind_menu)
       gl3_render_overlay(gl, width, height);
 #endif
 
@@ -2377,6 +2383,7 @@ video_driver_t video_gl3 = {
 
 #ifdef HAVE_OVERLAY
    gl3_get_overlay_interface,
+   true, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,

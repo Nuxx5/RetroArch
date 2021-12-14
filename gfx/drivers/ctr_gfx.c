@@ -2365,6 +2365,7 @@ video_driver_t video_ctr =
    NULL, /* read_frame_raw */
 #ifdef HAVE_OVERLAY
    ctr_overlay_interface,
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,

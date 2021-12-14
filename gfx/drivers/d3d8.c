@@ -1875,6 +1875,7 @@ video_driver_t video_d3d8 = {
    NULL,                      /* read_frame_raw */
 #ifdef HAVE_OVERLAY
    d3d8_get_overlay_interface,
+   false,                     /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
   NULL,

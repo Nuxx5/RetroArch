@@ -1845,6 +1845,7 @@ video_driver_t video_d3d10 = {
 
 #ifdef HAVE_OVERLAY
    d3d10_get_overlay_interface,
+   false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
    NULL,

@@ -242,6 +242,7 @@ typedef struct thread_video
    bool focus;
    bool suppress_screensaver;
    bool has_windowed;
+   bool has_overlay_behind_menu;
    bool nonblock;
    bool is_idle;
 } thread_video_t;

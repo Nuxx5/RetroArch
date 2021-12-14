@@ -984,6 +984,7 @@ video_driver_t video_sunxi = {
 
 #ifdef HAVE_OVERLAY
   NULL, /* overlay_interface */
+  false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
   NULL,

@@ -713,6 +713,7 @@ video_driver_t video_switch = {
     NULL, /* read_frame_raw */
 #ifdef HAVE_OVERLAY
     switch_overlay_interface, /* switch_overlay_interface */
+    false, /* has_overlay_behind_menu */
 #endif
 #ifdef HAVE_VIDEO_LAYOUT
   NULL,
